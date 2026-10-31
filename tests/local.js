@@ -36,10 +36,10 @@ const only = process.argv[2] ? process.argv[2].split(',').map(Number) : [0, 1, 2
     check(`${key} betätigt den Hebel`, await p.evaluate(() => PF.G.s.levers[0] === 1));
   }
   /* Kamera */
-  await p.evaluate(() => { PF.startLocal(1); const s = PF.G.s; s.p[0].x = 300; s.p[1].x = 800; }); await sleep(900);
+  await p.evaluate(() => { PF.startLocal(1); const s = PF.G.s; s.p[0].x = 100; s.p[1].x = 1180; }); await sleep(900);
   let cam = await p.evaluate(() => ({ split: PF.G.split, z: PF.G.cams[0].z }));
   check('Mittlerer Abstand: gemeinsame Kamera zoomt heraus', cam.split === 0 && cam.z < .95, JSON.stringify(cam));
-  await p.evaluate(() => { const s = PF.G.s; s.p[0].x = 300; s.p[1].x = 1450; s.p[1].y = 564; }); await sleep(500);
+  await p.evaluate(() => { const s = PF.G.s; s.p[0].x = 300; s.p[1].x = 2000; s.p[1].y = 564; }); await sleep(500);
   cam = await p.evaluate(() => ({ split: PF.G.split }));
   check('Großer Abstand: geteilter Bildschirm', cam.split === 1);
   await p.screenshot({ path: path.join(process.env.SHOTS || '.', 'local_split.png') });

@@ -181,6 +181,7 @@ async function runLevels(A, B, charA, levels) {
     }
   } catch (e) {
     check('Testlauf', false, e.message);
+    for (const c of browser.contexts()) for (const p of c.pages()) log('Zustand:', await p.evaluate(() => JSON.stringify({ players: PF.Net.players, level: PF.Net.level, slot: PF.G.slot, mode: PF.G.mode, st: document.getElementById('lobStatus').textContent, ws: PF.Net.ws && PF.Net.ws.readyState })).catch(() => 'n/a'));
   }
   await browser.close();
   if (srv) srv.kill();

@@ -20,7 +20,7 @@ const { L, R, J, E, C } = Sim;
 class Runner {
   constructor(lvl, state) {
     this.s = state || Sim.newState(lvl);
-    this.w = Sim.world(this.s.lvl);
+    this.w = Sim.worldOf(this.s);
     this.events = [];
     this.trace = false;
     this.ticks = 0;
@@ -33,7 +33,7 @@ class Runner {
     for (const e of this.s.ev) this.events.push(e);
     this.s.ev.length = 0;
     this.ticks++;
-    if (this.s.lvl !== lvl) this.w = Sim.world(this.s.lvl);
+    this.w = Sim.worldOf(this.s);
   }
 }
 
@@ -50,6 +50,7 @@ const footAt = (r, x, y) => { // steht unter (x,y) etwas innerhalb kurzer Distan
 
 /* laufen bis Zielspalte; springt automatisch bei Hindernis oder Abgrund */
 function* go(r, i, x, opt = {}) {
+  if (typeof x !== 'number') throw new Error('go: Ziel fehlt');
   const tol = opt.tol || 5;
   let stuck = 0, lastX = P(r, i).x;
   for (let t = 0; t < (opt.max || 1800); t++) {
@@ -131,6 +132,39 @@ function* ride(r, i, m, edge, off = 100) {
   yield* wait(r, 1);
 }
 
+/* von der Kante ans Seil springen, schwingen, an der richtigen Stelle loslassen, zum nächsten */
+function* swingAcross(r, i, ropes, landX) {
+  for (let n = 0; n < 700; n++) {
+    const p = P(r, i), cx = p.x + C.PW / 2;
+    if (p.g !== -1 && cx >= landX) return;
+    if (p.rope >= 0) {
+      const q = r.w.ropes[p.rope], last = p.rope === r.w.ropes.findIndex(o => o.x === ropes[ropes.length - 1].x);
+      yield R | (p.om > 0 && p.ang > (last ? .42 : .3) ? J : 0);
+    } else if (p.g !== -1) {
+      const edge = cx > ropes[0].x - 165;
+      yield R | (edge ? J : 0);
+    } else yield R | (p.vy < 0 ? J : 0);
+  }
+  throw new Error('swingAcross: nicht drüben, x=' + (P(r, i).x | 0));
+}
+/* zwischen zwei Kletterwänden hochspringen */
+function* wallClimb(r, i, left, right, topY, overX) {
+  for (let n = 0; n < 500; n++) {
+    const p = P(r, i), cx = p.x + C.PW / 2;
+    if (p.y + C.PH <= topY + 2 && p.vx > 0) { yield* hopOver(r, i, overX); return; }
+    const toRight = p.wall ? p.wall > 0 : cx < (left + right) / 2;
+    if (p.g !== -1) { yield J | R; continue; }
+    const go = p.wj ? 0 : (p.wall > 0 ? R : p.wall < 0 ? L : (p.vx >= 0 ? R : L));
+    const want = p.wall && p.vy > -2 && !p.wj;
+    yield go | (want ? ((p.bits & J) ? 0 : J) : (p.vy < -2 ? J : 0));
+    void toRight;
+  }
+  throw new Error('wallClimb: oben nicht erreicht, y=' + (P(r, i).y | 0));
+}
+function* hopOver(r, i, x) {
+  for (let t = 0; t < 120; t++) { const p = P(r, i); if (t > 2 && p.g !== -1) return; yield R | (p.vy < 0 ? J : 0); void x; }
+}
+
 /* Parallel: gen pro Spieler; endet wenn beide fertig (oder ein "lead" fertig ist) */
 function* par(r, g0, g1) {
   let a = g0 ? g0 : null, b = g1 ? g1 : null;
@@ -153,4 +187,4 @@ function play(r, plan) {
   }
 }
 
-module.exports = { Sim, LEVELS, Runner, go, hop, ride, leap, press, wait, until, pushTo, mount, par, only, play, loadShared, P, L, R, J, E, C };
+module.exports = { Sim, LEVELS, Runner, go, hop, ride, swingAcross, wallClimb, leap, press, wait, until, pushTo, mount, par, only, play, loadShared, P, L, R, J, E, C };

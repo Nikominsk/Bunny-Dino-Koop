@@ -1,6 +1,6 @@
 // Komplette Lösungswege je Abschnitt, gespielt nur über Eingaben in der echten Physik.
 // Jeder Abschnitt beginnt am Spawn/Checkpoint und endet am nächsten Checkpoint bzw. im Ziel.
-const { Sim, go, hop, ride, leap, press, wait, until, pushTo, mount, par, only, E, J, R, L, C, P } = require('./lib');
+const { Sim, LEVELS, go, hop, ride, swingAcross, wallClimb, leap, press, wait, until, pushTo, mount, par, only, E, J, R, L, C, P } = require('./lib');
 const opened = (r, i, v = 0.95) => r.s.gates[i].o >= v;
 const gate = (r, color, sec) => r.w.gates.findIndex(g => g.color === color && (sec === undefined || g.s === sec));
 const both = (r, a, b, o0, o1) => par(r, go(r, 0, a, o0), go(r, 1, b, o1));
@@ -180,7 +180,7 @@ module.exports = [
       toCp(r, 0),
     ),
     r => seq(
-      both(r, 2300, 2340),
+      both(r, 2270, 2340),
       only(r, 1, pushTo(r, 1, 0, 2770)),
       only(r, 0, go(r, 0, 2348)),
       only(r, 1, until(r, q => q.s.movers[1].y <= 401, 'Lift oben')),
@@ -326,3 +326,126 @@ module.exports = [
     ) ],
 ];
 module.exports.helpers = { seq, stack, opened, gate, both, toCp, toExit };
+
+/* Level 5 bis 9 bestehen aus Bausteinen: pro Baustein ein Lösungsweg */
+const boxes = (r, s) => r.w.boxes.map((b, i) => (b.s === s ? i : -1)).filter(i => i >= 0);
+const movers = (r, s) => r.w.movers.map((m, i) => (m.s === s ? i : -1)).filter(i => i >= 0);
+const openGate = (r, color, s) => until(r, q => opened(q, gate(q, color, s)), color);
+const PLANS = {
+  crumbles: (r, t, s) => seq(
+    only(r, 1, go(r, 1, t.X + 128)),
+    only(r, 0, go(r, 0, t.fs + 40)),
+    only(r, 0, go(r, 0, t.fs + 358)),
+    only(r, 1, until(r, q => movers(q, s).every(m => q.s.movers[m].on === 0), 'Kissen zurück', 400)),
+    only(r, 1, go(r, 1, t.fs + 40, { noPit: false })),
+    only(r, 1, go(r, 1, t.fs + 480)),
+  ),
+  boxRelay: (r, t, s) => { const [a, b] = boxes(r, s); return seq(
+    only(r, 0, go(r, 0, t.X + 300, { noJump: true })),
+    only(r, 0, pushTo(r, 0, a, t.X + 530)),
+    only(r, 0, hop(r, 0, t.X + 640)),
+    only(r, 0, pushTo(r, 0, b, t.X + 1364)),
+    only(r, 0, hop(r, 0, t.X + 1392)),
+    only(r, 1, go(r, 1, t.X + 490, {})), only(r, 1, hop(r, 1, t.X + 640)),
+    only(r, 1, go(r, 1, t.X + 1340, { noJump: true })), only(r, 1, hop(r, 1, t.X + 1392)),
+    only(r, 1, mount(r, 1, 0)),
+    only(r, 1, hop(r, 1, t.X + 1470)), only(r, 1, go(r, 1, t.X + 1510, { noJump: true })), only(r, 1, press(r, 1)),
+    only(r, 0, openGate(r, 'gruen', s)),
+    only(r, 0, hop(r, 0, t.X + 1350)), only(r, 0, hop(r, 0, t.X + 1470)),
+    only(r, 1, go(r, 1, t.X + 1540, { noJump: true })),
+  ); },
+  under: (r, t, s) => seq(
+    only(r, 0, go(r, 0, t.X + 230, { noJump: true })), only(r, 0, hop(r, 0, t.X + 235)), only(r, 0, hop(r, 0, t.X + 340)),
+    only(r, 1, go(r, 1, t.X + 640, { noJump: true })),
+    only(r, 0, go(r, 0, t.X + 598, { noJump: true })),
+    only(r, 1, openGate(r, 'rosa', s)),
+    only(r, 1, go(r, 1, t.X + 938, { noJump: true })),
+    only(r, 0, openGate(r, 'gelb', s)),
+    only(r, 0, go(r, 0, t.X + 1238, { noJump: true })),
+    only(r, 1, openGate(r, 'orange', s)),
+    only(r, 1, go(r, 1, t.X + 1450, { noJump: true })),
+  ),
+  liftUp: (r, t, s) => { const m = movers(r, s)[0]; return seq(
+    only(r, 0, go(r, 0, t.X + 595, { noPit: true, noJump: true })),
+    only(r, 1, go(r, 1, t.X + 238, { noJump: true })),
+    only(r, 0, until(r, q => q.s.movers[m].y <= t.top + 1, 'Lift oben')),
+    only(r, 0, go(r, 0, t.X + 760, { noJump: true })), only(r, 0, press(r, 0)),
+    only(r, 1, go(r, 1, t.X + 470, { noJump: true })),
+    only(r, 1, ride(r, 1, m, q => q.s.movers[m].y >= 618, 75)),
+    only(r, 1, until(r, q => q.s.movers[m].y <= t.top + 1, 'Lift oben 2')),
+  ); },
+  ferryDoor: (r, t, s) => { const m = movers(r, s)[0], X = t.X; return seq(
+    both(r, X + 330, X + 90, { noJump: true }),
+    only(r, 0, ride(r, 0, m, q => q.s.movers[m].x <= X + 372, 100)),
+    only(r, 0, until(r, q => q.s.movers[m].x >= X + 898, 'drüben')),
+    only(r, 0, go(r, 0, X + 1260, { noPit: true, noJump: true })),
+    only(r, 1, go(r, 1, X + 120, { noJump: true })), only(r, 1, press(r, 1)),
+    only(r, 0, openGate(r, 'orange', s)),
+    only(r, 0, go(r, 0, X + 1458, { noJump: true })),
+    only(r, 1, go(r, 1, X + 330, { noJump: true })),
+    only(r, 1, ride(r, 1, m, q => q.s.movers[m].x <= X + 372, 100)),
+    only(r, 1, until(r, q => q.s.movers[m].x >= X + 898, 'drüben 2')),
+    only(r, 1, go(r, 1, X + 1590, { noPit: true, noJump: true })),
+  ); },
+  doubleDrop: (r, t, s) => { const X = t.X; return seq(
+    both(r, X + 400, X + 340, { noJump: true }),
+    () => stack(r, 0, X + 560),
+    only(r, 1, hop(r, 1, X + 640)),
+        only(r, 0, go(r, 0, X + 288, { noJump: true })),
+    par(r, until(r, q => opened(q, gate(q, 'lila', s)), 'Brücke')),
+    only(r, 1, go(r, 1, X + 760, { noJump: true, noPit: true })),
+    only(r, 1, go(r, 1, X + 1300, { noJump: true })),
+  ); },
+  boxFerry: (r, t, s) => { const X = t.X, b = boxes(r, s)[0], m = movers(r, s)[0]; return seq(
+    only(r, 1, go(r, 1, X + 150, { noJump: true })),
+    only(r, 1, pushTo(r, 1, b, X + 410)),
+    only(r, 0, go(r, 0, X + 78, { noJump: true })),
+    only(r, 1, until(r, q => q.s.movers[m].x >= X + 759, 'Fähre drüben')),
+    only(r, 1, pushTo(r, 1, b, X + 1110)),
+    only(r, 1, hop(r, 1, X + 1240)),
+    only(r, 0, go(r, 0, X + 300, { noJump: true })),
+    only(r, 0, ride(r, 0, m, q => q.s.movers[m].x <= X + 351, 60)),
+    only(r, 1, go(r, 1, X + 1368, { noJump: true })),
+    only(r, 0, until(r, q => q.s.movers[m].x >= X + 759, 'Fähre drüben 2')),
+    only(r, 0, go(r, 0, X + 1050, { noJump: true })), only(r, 0, hop(r, 0, X + 1240)),
+    both(r, X + 1660, X + 1620, { noJump: true }),
+  ); },
+  swingGap: (r, t, s) => { const X = t.X, ropes = r.w.ropes.filter(q => q.s === s), fl = X + t.gap + 30; return seq(
+    only(r, 1, go(r, 1, X + 138, { noJump: true })),
+    only(r, 0, go(r, 0, X + 200, { noJump: true })),
+    only(r, 0, swingAcross(r, 0, ropes, fl)),
+    only(r, 0, go(r, 0, X + t.gap + 458, { noJump: true })),
+    only(r, 1, go(r, 1, X + 200, { noJump: true })),
+    only(r, 1, swingAcross(r, 1, ropes, fl)),
+    only(r, 1, go(r, 1, X + t.gap + 620, { noJump: true })),
+  ); },
+  wallShaft: (r, t, s) => { const X = t.X; return seq(
+    only(r, 1, go(r, 1, X + 300, { noJump: true })),
+    only(r, 0, go(r, 0, X + 515, { noJump: true })),
+    only(r, 0, wallClimb(r, 0, X + 460, X + 570, 230, X + 680)),
+    only(r, 0, go(r, 0, X + 720, { noJump: true })), only(r, 0, press(r, 0)),
+    only(r, 1, openGate(r, 'gruen', s)),
+    only(r, 0, go(r, 0, X + 960, { noJump: true })),
+    only(r, 1, go(r, 1, X + 800, { noJump: true })),
+    only(r, 0, go(r, 0, X + 1090, { noJump: true, noPit: true })),
+  ); },
+  climb: (r, t, s) => { const X = t.X; return seq(
+    both(r, X + 300, X + 240, { noJump: true }),
+    () => stack(r, 1, X + 478),
+    only(r, 0, hop(r, 0, X + 540)), only(r, 0, go(r, 0, X + 590, { noJump: true })), only(r, 0, press(r, 0)),
+    only(r, 1, openGate(r, 'gruen', s)),
+    only(r, 1, go(r, 1, X + 430, { noJump: true })), only(r, 1, hop(r, 1, X + 430)), only(r, 1, hop(r, 1, X + 540)),
+    both(r, X + 800, X + 760, { noJump: true }),
+    () => stack(r, 0, X + 878),
+    only(r, 1, hop(r, 1, X + 940)), only(r, 1, go(r, 1, X + 1000, { noJump: true })), only(r, 1, press(r, 1)),
+    only(r, 0, openGate(r, 'lila', s)),
+    only(r, 0, go(r, 0, X + 830, { noJump: true })), only(r, 0, hop(r, 0, X + 830)), only(r, 0, hop(r, 0, X + 940)),
+    both(r, X + 1200, X + 1160, { noJump: true }),
+  ); },
+};
+for (let lvl = module.exports.length; lvl < LEVELS.length; lvl++) {
+  module.exports[lvl] = LEVELS[lvl].sections.map((sec, s) => r => seq(
+    () => PLANS[sec.tpl.k](r, sec.tpl, s)(),
+    s < LEVELS[lvl].sections.length - 1 ? () => toCp(r, s)() : () => toExit(r)(),
+  ));
+}

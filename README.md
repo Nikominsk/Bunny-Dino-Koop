@@ -1,6 +1,6 @@
 # Plüschfreunde
 
-Süßes 2D-Koop-Puzzlespiel im Browser: Hase und Dino müssen gemeinsam durchs Kinderzimmer. Online auf zwei Computern oder zu zweit an einer Tastatur. Tutorial und vier Level, alle Sterne sind Pflicht, kein Game-over.
+Süßes 2D-Koop-Puzzlespiel im Browser: Hase und Dino müssen gemeinsam durchs Kinderzimmer. Online auf zwei Computern oder zu zweit an einer Tastatur. Tutorial und neun Level, alle Sterne sind Pflicht, kein Game-over. Dazu kommt der Endlos-Lauf „Rabenjagd“.
 
 ## Dateien
 
@@ -31,17 +31,32 @@ Nur lokaler Koop: `index.html` per Doppelklick öffnen. Dafür braucht es keinen
 
 1. Eine Person klickt **Raum erstellen** und schickt den vierstelligen Code.
 2. Die andere Person gibt den Code ein und klickt **Raum beitreten**.
-3. Beide wählen verschiedene Figuren und klicken **Bereit**. Unter „Start bei“ lässt sich ein späteres Level wählen, weil der Fortschritt nicht gespeichert wird.
+3. Beide wählen verschiedene Figuren und klicken **Bereit**. Unter „Spielstart“ lässt sich ein späteres Level oder der Endlos-Lauf wählen. Der Fortschritt wird nicht gespeichert.
 
 | | Online | Lokal: Hase | Lokal: Dino |
 | --- | --- | --- | --- |
 | Laufen | `A`/`D` oder `←`/`→` | `A`/`D` | `←`/`→` |
 | Springen | `Leertaste` | `W` | `↑` |
 | Hebel | `E` | `E` | `Enter` |
+| Küssen | `Q` | `Q` | über `Q` des Hasen |
 
 `Esc` öffnet das Menü mit Steuerung. `R` eine Sekunde halten oder der Menüpunkt setzt den aktuellen Abschnitt zurück. Sterne und fertige Abschnitte bleiben dabei erhalten. Boxen schiebt ihr durch Dagegenlaufen, auf eine Box steigt ihr per Sprung.
 
 **Räuberleiter:** Stellt euch übereinander und springt gerade hoch, dann landet ihr auf dem Kopf des Partners. Die untere Figur kann dann laufen, aber nicht springen.
+
+**Seil:** Im Sprung den Griff berühren, dann hängt ihr dran. Laufen gibt Schwung, Springen lässt los. Das kommt in Level 5 bis 9 und im Endlos-Lauf vor.
+
+**Kletterwand:** An den blauen Wänden rutscht ihr langsamer und könnt abspringen. So geht es zwischen zwei Wänden hin und her nach oben. Normale Wände funktionieren so nicht, damit Koop-Hindernisse bestehen bleiben.
+
+**Küssen:** Steht ihr nah beieinander auf gleicher Höhe, startet `Q` den Kuss. Beide Figuren stehen dann etwa 1,7 Sekunden still, auch im Endlos-Lauf.
+
+**Endlos-Lauf „Rabenjagd“:** Ein Rabe sitzt euch im Nacken und wird immer schneller. Trifft er einen von euch, ist die Runde vorbei.
+
+- **Sturzflug:** Regelmäßig steigt er auf und zielt mit einem roten Kreis auf eine Figur. Er rechnet eure Laufrichtung ein. Sobald der Kreis fest wird, müsst ihr heraus: abbremsen oder umdrehen.
+- **Kuss-Schild:** Ein Kuss friert euch 1,7 Sekunden ein, lädt danach aber ein Herz-Schild, das einen Treffer abfängt. Danach läuft eine Abklingzeit von 12 Sekunden.
+- **Punkte:** Meter, Sterne mit Kombo und 15 Punkte, wenn ihr einem Sturzflug knapp entkommt. Der Rekord bleibt im Browser.
+- **Abschnitte:** Zufällig gemischt aus Sprüngen, bröckelnden Kissen, Boxen, Fahrstühlen, Fähren, Haltebrücken, Doppelplatten und Hebeln per Räuberleiter, Seilen und Kletterwänden.
+- **Absturz:** Wer fällt, steht wieder am Abschnittsanfang. Der Rabe hält dann kurz inne. `R` holt die Box des Abschnitts zurück.
 
 **Verpasste Sterne:** Wird ein Checkpoint aktiviert, hüpfen verpasste Sterne der fertigen Abschnitte zur Flagge. So bleibt kein Pflichtstern unerreichbar.
 
@@ -82,11 +97,9 @@ Stand 31.10.2026 laut Doku der Anbieter. Preise können sich ändern.
 
 Vercel selbst: statisches Hosting reicht, der Hobby-Tarif genügt für ein privates Projekt.
 
-Auf Render Free gilt: Solange ihr spielt, fließt Verkehr. Wenn der Server schläft oder neu startet, sind Räume weg, weil sie nur im Arbeitsspeicher liegen. Dann einfach einen neuen Raum erstellen und unter „Start bei“ das Level wählen.
+Auf Render Free gilt: Solange ihr spielt, fließt Verkehr. Wenn der Server schläft oder neu startet, sind Räume weg, weil sie nur im Arbeitsspeicher liegen. Dann einfach einen neuen Raum erstellen und unter „Spielstart“ das Level wählen.
 
 ### Schritt für Schritt
-
-Das Projekt liegt aktuell in einem Ordner innerhalb eines Git-Repos deines Benutzerordners. Lege deshalb vorher ein eigenes Repo an: `git init` im Projektordner, committen, zu GitHub pushen.
 
 **1. Spielserver bei Render**
 
@@ -141,6 +154,9 @@ Automatische Tests, dafür zusätzlich `npm install` ohne `--omit=dev`:
 
 ```bash
 npm test                                   # Durchspielen aller Level und Regeln in der Simulation
+node tests/run.js                          # Kuss und Endlos-Lauf in der Simulation
+node tests/run-e2e.js                      # Kuss und Endlos-Lauf online und lokal in Chrome
+node tests/smooth.js                       # Gleichmäßigkeit der Darstellung online
 node tests/solo.js                         # Stichprobe: Kommt man allein durch?
 node tests/local.js                        # Lokaler Koop in Chrome, ohne Server
 node tests/e2e.js --levels=0,1,2,3,4       # Online mit zwei Chrome-Sitzungen
@@ -149,4 +165,56 @@ node tests/deploy-sim.js                   # wie oben mit getrennter Seite, TLS,
 
 Die Browsertests nutzen das installierte Google Chrome. `deploy-sim.js` braucht `openssl` und die freien Ports 8080, 8443 und 3200.
 
-<!--TESTS-->
+## Tatsächlich durchgeführte Tests
+
+Alle Läufe fanden am 31.10.2026 auf einem Windows-11-Rechner mit Node 22 und Google Chrome statt. Beide Spieler waren dabei Bots, die nur Eingaben senden.
+
+| Test | Ergebnis |
+| --- | --- |
+| Physik gemessen (`tests/physics-measure.js`) | Sprunghöhe 118 px, Weite 171 px, von Kante zu Kante etwa 207 px. Daran sind die Level ausgerichtet |
+| `tests/playthrough.js` | Alle 5 Level in der Simulation abgeschlossen, alle Sterne, kein Absturz. Bot-Zeit gesamt 394 s |
+| `tests/rules.js` | 35 von 35: Stern zählt bei Gleichzeitigkeit einmal, Ausgang braucht alle Sterne und beide Spieler, Abschluss und Levelwechsel nur einmal, alle Spawnpunkte frei, verpasste Sterne erreichbar, Absturz, Box-Rückkehr, Tür ohne Quetschen, Räuberleiter |
+| Zufallstest in `rules.js` | In jedem der 23 Abschnitte 25 s Zufallseingaben, dann Reset: Der Rest des Levels war jedes Mal lösbar |
+| `tests/e2e.js`, alle Level | 27 von 27 Prüfungen mit zwei getrennten Chrome-Sitzungen über einen echten Server: Raum, falscher Code, dritte Person abgewiesen, Figuren, Bereitschaft, echte Tastatur, Abbruch, automatisches Wiederverbinden, Neuladen, alle Level nacheinander, gleicher Sternestand, „Zusammen geschafft!“, Nochmal spielen, Serverausfall |
+| `tests/deploy-sim.js`, Tutorial und Level 1 | 18 von 18, dazu Origin-Prüfung erlaubt und abgelehnt. Getrennte HTTPS-Seite aus dem Vercel-Build, `wss` über TLS-Proxy, rund 100 ms Latenz hin und zurück |
+| `tests/local.js` | Alle 5 Level per `file://` ohne Server abgeschlossen. Tasten beider Figuren, gleichzeitiges Laufen, Zoom, geteilter Bildschirm, Esc-Pause bestanden |
+| `vercel build` in einer Kopie | Erfolgreich. Ausgabe nur `index.html`, Server-Adresse korrekt eingetragen |
+| `tests/solo.js` | Stichprobe mit Suchgrenze, siehe unten |
+
+Hinweise zu den Ergebnissen:
+
+- Im Online-Lauf mussten die Bots 6-mal einen Abschnitt wiederholen, in den lokalen Läufen ebenfalls einzelne Male. Ursache war das Timing der Bot-Skripte im Echtzeitlauf, in den Fällen, die ich angesehen habe, etwa eine Platte im Laufweg. Der Reset führte jedes Mal zum Ziel.
+- Der Durchlauf `e2e` lief vor den letzten kleinen Oberflächen-Änderungen an Hinweis-Position und Statuspunkten. `deploy-sim` und `local` liefen danach.
+- Allein-Prüfung: In 43 von 46 Suchläufen kam ein einzelner Spieler nicht zum nächsten Ziel, nur 10 davon haben alle Möglichkeiten erschöpft, die übrigen endeten an der Suchgrenze. Allein erreichbar waren der Tutorial-Schluss, der kein Koop-Hindernis enthält, und Level 4, Abschnitt 5. Dort kommt eine Figur mit dem Zeit-Hebel allein durch die Tür, die zweite braucht aber den Partner auf der Platte dahinter.
+
+### Kuss und Endlos-Lauf
+
+Ebenfalls am 31.10.2026 mit Bots ausgeführt:
+
+| Test | Ergebnis |
+| --- | --- |
+| `tests/run.js` | 41 von 41: Kuss-Regeln, gleicher Zufallswert ergibt denselben Lauf, Sturzflug, Schild, Kombo, bröckelnde Kissen, Game over genau einmal |
+| Lösbarkeit ohne Rabe | 3 Läufe mit je 40 Abschnitten geschafft. Der Typ `updown` kam in dieser letzten Fassung nicht vor, wurde aber in der Vorfassung gelöst |
+| Mit Rabe | Bots ohne Ausweichen enden nach 8 bis 22 Sekunden. Bots mit einfachem Ausweichen, ohne Kuss-Schild, kamen 33 bis 150 Sekunden weit |
+| `tests/playthrough.js` | Alle 10 Level in der Simulation geschafft, Level 5 bis 9 je 92 bis 136 Sekunden Bot-Zeit |
+| `e2e` Level 5 bis 9 | 27 von 27 mit zwei Chrome-Sitzungen, inklusive Abbruch, Wiederverbinden und Abschluss. Die Bots wiederholten 3-mal einen Abschnitt |
+| `local` Tutorial, Level 6 und 9 | 11 von 11 |
+| `tests/run-e2e.js` | 12 von 12, nach einem Lauf, in dem die Bots zu früh am Raben scheiterten. Der Test versucht es nun über mehrere Runden |
+| `deploy-sim` | Bei mehreren Läufen: 16 von 16 in Level 5, zweimal. Zweimal direkt nach einem anderen Browsertest hing der Lauf im Warteraum. Die Ursache ist unklar |
+| Ruckeln | `tests/smooth.js` misst die Korrektur der eigenen Figur online: im Mittel 0,22 px. Das Spielgefühl auf deinem Rechner konnte ich nicht messen |
+
+Tutorial und Level 1 bis 4 liefen online zuletzt vor diesen Features vollständig, danach nur in der Simulation. Beim Testen fiel ein echter Fehler auf und ist behoben: Nach „Nochmal“ konnte der Server Eingaben einer Person verwerfen.
+
+## Nicht getestet und bekannte Einschränkungen
+
+- **Kein echter Host:** Weder Vercel noch Render wurden tatsächlich benutzt. Die Deployment-Tests bilden den Aufbau auf einem Rechner nach. Echte Latenz, Proxys und Render-Free-Verhalten sind ungeprüft.
+- **Keine Menschen:** Spielgefühl, Rätselverständlichkeit und die Spielzeit von 3–5 bzw. 25–40 Minuten sind nicht gemessen. Die Spielzeit ist eine Schätzung aus 23 Abschnitten.
+- **Nur Chrome:** Firefox, Safari und Mobilgeräte sind nicht getestet. Das Spiel braucht eine Tastatur.
+- **Ton:** Die Geräusche sind eingebaut, aber nicht abgehört worden.
+- **Einmaliger Absturz:** Bei einem frühen Testlauf meldete Chrome einmal `Target crashed`. Die Ursache ist unbekannt. In späteren langen Läufen trat es nicht wieder auf, der JS-Speicher lag konstant bei rund 5 MB.
+- **Endlos-Lauf:** Tempo und Fairness sind nur mit Bots geprüft. Echte Spieler können es leichter oder schwerer finden, der Lauf ist jetzt bewusst fordernd. Stellschrauben stehen in `RUN` in der Simulation.
+- **Fortschritt:** Nichts wird gespeichert. Räume leben im Arbeitsspeicher des Servers und enden mit dessen Neustart.
+- **Reset:** Jeder Spieler kann den Abschnitt allein zurücksetzen, ohne Rückfrage beim Partner.
+- **Box verloren:** Fällt eine Box in eine Grube, kehrt sie von selbst zurück. Landet sie in einem flachen Aufzugsschacht oder ist blockiert, hilft der Abschnitts-Reset.
+- **Lösungswege:** Alternative Lösungen sind möglich. In Level 4, Abschnitt 1 lassen sich beide Boxen zusammen durch die Tür schieben, dann braucht es den Reset.
+- **Referenzbild:** Es lag keines bei. Die Grafik folgt der Textbeschreibung.

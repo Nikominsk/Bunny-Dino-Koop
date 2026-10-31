@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "build:vercel": "node scripts/vercel-build.js",
-    "test": "node tests/playthrough.js && node tests/rules.js"
+    "test": "node tests/playthrough.js && node tests/rules.js && node tests/run.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
