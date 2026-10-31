@@ -1,0 +1,21 @@
+{
+  "name": "plueschfreunde",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Süßes 2D-Koop-Browserspiel: Hase und Dino im Kinderzimmer",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "build:vercel": "node scripts/vercel-build.js",
+    "test": "node tests/playthrough.js && node tests/rules.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
+}

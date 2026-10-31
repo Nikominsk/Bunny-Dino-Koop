@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "echo keine Abhaengigkeiten noetig",
+  "buildCommand": "node scripts/vercel-build.js",
+  "outputDirectory": "public"
+}
