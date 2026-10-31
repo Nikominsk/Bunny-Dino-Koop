@@ -1,6 +1,6 @@
 # Plüschfreunde
 
-Süßes 2D-Koop-Puzzlespiel im Browser: Hase und Dino müssen gemeinsam durchs Kinderzimmer. Online auf zwei Computern oder zu zweit an einer Tastatur. Tutorial und neun Level, alle Sterne sind Pflicht, kein Game-over. Dazu kommt der Endlos-Lauf „Rabenjagd“.
+Süßes 2D-Koop-Puzzlespiel im Browser: Hase und Dino müssen gemeinsam durchs Kinderzimmer. Online auf zwei Computern oder zu zweit an einer Tastatur. Tutorial und neun Level, alle Sterne sind Pflicht, kein Game-over. Dazu kommen die Endlos-Modi „Rabenjagd“ und „Pfeilhagel“ sowie das 3D-Rabenlabyrinth.
 
 ## Dateien
 
@@ -57,6 +57,20 @@ Nur lokaler Koop: `index.html` per Doppelklick öffnen. Dafür braucht es keinen
 - **Punkte:** Meter, Sterne mit Kombo und 15 Punkte, wenn ihr einem Sturzflug knapp entkommt. Der Rekord bleibt im Browser.
 - **Abschnitte:** Zufällig gemischt aus Sprüngen, bröckelnden Kissen, Boxen, Fahrstühlen, Fähren, Haltebrücken, Doppelplatten und Hebeln per Räuberleiter, Seilen und Kletterwänden.
 - **Absturz:** Wer fällt, steht wieder am Abschnittsanfang. Der Rabe hält dann kurz inne. `R` holt die Box des Abschnitts zurück.
+
+**Endlos-Lauf „Pfeilhagel“:** Unter „Spielstart“ wählbar. Pfeile kommen als Gruppe und immer aus einer Richtung. Jede Figur hat eine eigene Aufgabe.
+
+- **Hase als Späherin:** Online sieht nur der Hase die Warnung. Klick setzt eine Markierung in die Richtung, aus der sie die Pfeile erwartet. Der Dino sieht die Markierung, sie verschwindet, sobald Pfeile im Sichtfeld sind. Der dritte Treffer beendet die Runde, der Hase kann nicht geheilt werden.
+- **Möhren:** Rechtsklick oder `F` wirft eine Möhre geradeaus zur Maus, ohne Schwerkraft. Ein getroffener Bogenschütze lässt seine nächste Salve ausfallen, ein getroffener Fuchs ist kurz betäubt.
+- **Dino:** Das Ritterschild folgt der Maus und blockt genau dort, wo es gezeichnet ist. Klick schlägt mit dem Schwert in Mausrichtung, das Schild ist dabei kurz offen. Der Dino hat 2 Leben. Nur ein Kuss, den der Hase mit `Q` auslöst, füllt sie auf.
+- **Fuchs:** Ab und zu kommt er von vorn. Drei Schwerttreffer besiegen ihn, jeder stößt ihn zurück. Bisse zählen wie Pfeiltreffer.
+- **Lokal:** Die Maus gehört dem Dino. Beide sehen die Warnung, die Markierung entfällt. `F` wirft die Möhre automatisch auf den Fuchs oder den Schützen in Blickrichtung.
+- **Punkte:** Strecke, geblockte Pfeile, Salven ohne Treffer, Füchse und Schützen. Mauern und Plattformen halten Pfeile ebenfalls auf. Abstürze kosten keine Leben.
+
+**3D-Rabenlabyrinth:** Unter „Spielstart“ wählbar. Ihr startet in einem hellen Raum, das Labyrinth dahinter entsteht jedes Mal neu. Der goldene Ausgang liegt auf der anderen Seite, oben zeigt ein Pfeil grob die Richtung. Gewonnen ist erst, wenn beide am Ausgang stehen. Der Rabe jagt euch, verschwindet immer wieder und taucht plötzlich woanders auf. Im hellen Raum und am Ausgang seid ihr sicher.
+
+- **Online:** `W` `A` `S` `D` laufen. Klick ins Bild fängt die Maus ein, dann schaut sie. `←` `→` drehen ebenfalls.
+- **Lokal:** Geteilter Bildschirm. Hase `W`/`S` laufen, `A`/`D` drehen. Dino `↑`/`↓` laufen, `←`/`→` drehen.
 
 **Verpasste Sterne:** Wird ein Checkpoint aktiviert, hüpfen verpasste Sterne der fertigen Abschnitte zur Flagge. So bleibt kein Pflichtstern unerreichbar.
 
@@ -156,6 +170,8 @@ Automatische Tests, dafür zusätzlich `npm install` ohne `--omit=dev`:
 npm test                                   # Durchspielen aller Level und Regeln in der Simulation
 node tests/run.js                          # Kuss und Endlos-Lauf in der Simulation
 node tests/run-e2e.js                      # Kuss und Endlos-Lauf online und lokal in Chrome
+node tests/arrow-e2e.js                    # Pfeilhagel online und lokal in Chrome
+node tests/maze-e2e.js                     # Rabenlabyrinth online und lokal in Chrome
 node tests/smooth.js                       # Gleichmäßigkeit der Darstellung online
 node tests/solo.js                         # Stichprobe: Kommt man allein durch?
 node tests/local.js                        # Lokaler Koop in Chrome, ohne Server
@@ -201,6 +217,10 @@ Ebenfalls am 31.10.2026 mit Bots ausgeführt:
 | `local` Tutorial, Level 6 und 9 | 11 von 11 |
 | `tests/run-e2e.js` | 12 von 12, nach einem Lauf, in dem die Bots zu früh am Raben scheiterten. Der Test versucht es nun über mehrere Runden |
 | `deploy-sim` | Bei mehreren Läufen: 16 von 16 in Level 5, zweimal. Zweimal direkt nach einem anderen Browsertest hing der Lauf im Warteraum. Die Ursache ist unklar |
+| Pfeilhagel in `tests/run.js` | 78 von 78 insgesamt in dieser Datei. Bots mit Schild und Fuchskampf hielten 56 bis 120 Sekunden, ohne Schild 16 bis 19 Sekunden. Möhren und Markierung nutzten die Bots dabei nicht |
+| `tests/arrow-e2e.js` | 15 von 15: Warnung nur beim Hasen, Markierung, Möhre, Schild, Blocken, Fuchs, Game over, Nochmal, lokal per `file://` |
+| `tests/maze.js` | 12 von 12: 200 Labyrinthe vollständig erreichbar, Wand, Ausgang nur zu zweit, Rabe, sicherer Raum |
+| `tests/maze-e2e.js` | 6 von 6: online mit zwei Chrome-Sitzungen, gleiches Labyrinth, Sieg und Game over, lokal mit geteiltem Bild |
 | Ruckeln | `tests/smooth.js` misst die Korrektur der eigenen Figur online: im Mittel 0,22 px. Das Spielgefühl auf deinem Rechner konnte ich nicht messen |
 
 Tutorial und Level 1 bis 4 liefen online zuletzt vor diesen Features vollständig, danach nur in der Simulation. Beim Testen fiel ein echter Fehler auf und ist behoben: Nach „Nochmal“ konnte der Server Eingaben einer Person verwerfen.
@@ -213,6 +233,7 @@ Tutorial und Level 1 bis 4 liefen online zuletzt vor diesen Features vollständi
 - **Ton:** Die Geräusche sind eingebaut, aber nicht abgehört worden.
 - **Einmaliger Absturz:** Bei einem frühen Testlauf meldete Chrome einmal `Target crashed`. Die Ursache ist unbekannt. In späteren langen Läufen trat es nicht wieder auf, der JS-Speicher lag konstant bei rund 5 MB.
 - **Endlos-Lauf:** Tempo und Fairness sind nur mit Bots geprüft. Echte Spieler können es leichter oder schwerer finden, der Lauf ist jetzt bewusst fordernd. Stellschrauben stehen in `RUN` in der Simulation.
+- **Labyrinth:** Die Schwierigkeit ist nur mit Bots geprüft, die den Weg kennen. Spielzeit und Grusel zeigen sich erst beim echten Spielen. Auf sehr langsamen Rechnern kostet die 3D-Ansicht mehr als die übrigen Modi.
 - **Fortschritt:** Nichts wird gespeichert. Räume leben im Arbeitsspeicher des Servers und enden mit dessen Neustart.
 - **Reset:** Jeder Spieler kann den Abschnitt allein zurücksetzen, ohne Rückfrage beim Partner.
 - **Box verloren:** Fällt eine Box in eine Grube, kehrt sie von selbst zurück. Landet sie in einem flachen Aufzugsschacht oder ist blockiert, hilft der Abschnitts-Reset.

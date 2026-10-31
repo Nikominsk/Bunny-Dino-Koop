@@ -140,7 +140,7 @@ wss.on('connection', ws => {
     if (!seat) return;
     switch (m.t) {
       case 'i':
-        if (room.game && !room.paused && Number.isInteger(m.s) && m.s > seat.ack && seat.queue.length < 120) seat.queue.push({ s: m.s, b: m.b & 31 });
+        if (room.game && !room.paused && Number.isInteger(m.s) && m.s > seat.ack && seat.queue.length < 120) seat.queue.push({ s: m.s, b: m.b & 8388607 });
         break;
       case 'pick': {
         if (room.game) break;
@@ -151,9 +151,9 @@ wss.on('connection', ws => {
         break;
       }
       case 'ready': seat.ready = !!m.r && seat.c !== null; lobby(room); maybeStart(room); break;
-      case 'level': if (!room.game && Number.isInteger(m.l) && m.l >= 0 && m.l <= Sim.RUN.LVL) { room.level = m.l; room.players.forEach(p => { if (p) p.ready = false; }); lobby(room); } break;
+      case 'level': if (!room.game && Number.isInteger(m.l) && m.l >= 0 && m.l <= Sim.RUN.MAZE) { room.level = m.l; room.players.forEach(p => { if (p) p.ready = false; }); lobby(room); } break;
       case 'reset': if (room.game && !room.paused && room.state) { Sim.requestReset(room.state); send(room.players[1 - ws.slot] && room.players[1 - ws.slot].ws, { t: 'toast', m: 'Dein Partner setzt den Abschnitt zurück.' }); } break;
-      case 'again': if (room.game && room.state && (room.state.phase === 'finale' || room.state.phase === 'over')) startGame(room, room.state.run ? Sim.RUN.LVL : 0); break;
+      case 'again': if (room.game && room.state && ['finale', 'over', 'won'].includes(room.state.phase)) startGame(room, room.state.run || room.state.mz ? room.state.lvl : 0); break;
       case 'leave': seat.ws = null; ws.room = null; dropSeat(room, ws.slot); break;
     }
   });

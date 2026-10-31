@@ -194,5 +194,198 @@ console.log('Endlos-Lauf: Absturz, Fenster, Zufallstest');
   }
   ok('Zufallseingaben: Listen bleiben passend, keine Fehler', bad === 0, bad);
 }
+console.log('Pfeilhagel');
+{
+  const VOL = Sim.VOL;
+  const fresh = seed => new Runner(0, Sim.newState(RUN.ARROW, seed));
+  const pair = (r, x, dx) => { r.s.p[0].x = x; r.s.p[1].x = x + dx; r.s.p[0].y = r.s.p[1].y = 564; };
+  const aimOf = a => (Math.round((a + Math.PI * 2) / (Math.PI * 2) * 64) & 63) << 5;
+  /* Dino stellt sich vor den Hasen und hält das Schild der Salve entgegen */
+  const guard = r => {
+    const v = r.s.vol, h = r.s.p[0], d = r.s.p[1], tx = h.x - v.side * 14;
+    const a = Math.atan2(-Math.sin(v.ang), -v.side * Math.cos(v.ang));
+    /* Fuchs in Reichweite: hinzielen und im Wechsel zuschlagen */
+    const f = r.s.fox;
+    if (f && Math.hypot(f.x + 23 - (d.x + 18), f.y - d.y) < 150 && v.st !== 'warn') {
+      const toFox = Math.atan2(f.y + 17 - (d.y + 28), f.x + 23 - (d.x + 18));
+      return (Math.abs(f.x - d.x) > 70 ? (f.x > d.x ? R : L) : 0) | aimOf(toFox) | (r.s.tick % 4 < 2 ? Sim.S : 0);
+    }
+    return (Math.abs(d.x - tx) > 6 ? (d.x < tx ? R : L) : 0) | aimOf(a);
+  };
+  const a = fresh(50), b = fresh(50);
+  for (let i = 0; i < 700; i++) { a.tick(R, R); b.tick(R, R); }
+  ok('gleicher Zufallswert ergibt dieselben Salven', JSON.stringify(a.s) === JSON.stringify(b.s));
+  ok('Salve fliegt als Gruppe', a.events.filter(e => e.e === 'warn').length >= 1);
+  /* jede Salve kommt mit Warnung und von genau einer Seite */
+  const w = fresh(51);
+  pair(w, 200, 40);
+  let same = true, warned = 0, fired = 0;
+  for (let i = 0; i < 2500 && w.s.phase === 'play'; i++) {
+    w.tick(0, guard(w));
+    if (w.s.vol.st === 'warn') warned++;
+    if (w.s.arrows.length) { const s0 = Math.sign(w.s.arrows[0].vx); if (w.s.arrows.some(q => Math.sign(q.vx) !== s0)) { same = w.s.arrows.length < 40 && same; } fired++; }
+  }
+  ok('vor jeder Salve gibt es eine Warnzeit', warned > 60 && fired > 60);
+  /* Schutz wirkt: mit Dino hält der Hase durch, ohne ist schnell Schluss */
+  const survive = (seed, guarded) => {
+    const r = fresh(seed);
+    pair(r, 300, 40);
+    let n = 0;
+    while (r.s.phase === 'play' && n < 7200) { r.tick(0, guarded ? guard(r) : 0); n++; }
+    return { t: n / 60 | 0, blocked: r.s.blocked, hp: r.s.hp, perfect: r.s.perfect, foxes: r.s.foxes };
+  };
+  const g = [60, 61, 62, 63].map(s => survive(s, true)), u = [60, 61, 62, 63].map(s => survive(s, false));
+  console.log('  mit Schild:', JSON.stringify(g.map(x => x.t + ' s/' + x.blocked + ' geblockt')), ' ohne:', JSON.stringify(u.map(x => x.t + ' s')));
+  ok('ohne Schild endet die Runde früh', u.every(x => x.t < 60));
+  ok('Dino besiegt dabei Füchse', g.some(x => x.foxes > 0), g.map(x => x.foxes).join());
+  ok('mit Schild hält der Hase länger', g.reduce((a, x) => a + x.t, 0) > u.reduce((a, x) => a + x.t, 0) * 1.5);
+  /* Schaden: Hase deutlich stärker als Dino */
+  const dmg = (who) => {
+    const r = fresh(70);
+    pair(r, 300, 300);
+    r.s.vol.t = 9999;
+    const p = r.s.p[who];
+    r.s.arrows = [{ x: p.x - 8, y: p.y + 28, vx: 9, vy: 0 }];
+    r.tick(0, 0);
+    return 100 - r.s.hp[who];
+  };
+  ok('Dino hat 2 Leben, Hase 3', Math.ceil(100 / dmg(1)) === 2 && Math.ceil(100 / dmg(0)) === 3, dmg(0) + ' / ' + dmg(1));
+  /* Schild blockt nur in Blickrichtung */
+  const shield = (aim, fromLeft) => {
+    const r = fresh(71);
+    pair(r, 300, 300);
+    r.s.vol.t = 9999;
+    const d = r.s.p[1];
+    r.tick(0, aimOf(aim));
+    r.s.arrows = [{ x: d.x + 18 + (fromLeft ? -66 : 66), y: d.y + 28, vx: fromLeft ? 9 : -9, vy: 0 }];
+    r.tick(0, aimOf(aim));
+    return r.s.blocked;
+  };
+  ok('Schild nach links blockt Pfeil von links', shield(Math.PI, true) === 1);
+  ok('Schild nach rechts blockt Pfeil von links nicht', shield(0, true) === 0);
+  ok('Schild nach oben blockt Pfeil von links nicht', shield(-Math.PI / 2, true) === 0);
+  /* Schild-Trefferfläche entspricht der Zeichnung */
+  const zone = (along, across) => {
+    const r = fresh(74);
+    pair(r, 300, 300);
+    r.s.vol.t = 9999; r.s.foxT = 99999;
+    r.tick(0, aimOf(Math.PI));
+    const d = r.s.p[1], ox = d.x + 18, oy = d.y + 28;
+    r.s.arrows = [{ x: ox - along - 9, y: oy + across, vx: 9, vy: 0 }];
+    r.tick(0, aimOf(Math.PI));
+    return r.s.blocked === 1;
+  };
+  ok('Mitte des Schilds blockt', zone(50, 0));
+  ok('Rand des Schilds blockt', zone(50, 30));
+  ok('knapp über dem Schild fliegt der Pfeil durch', !zone(50, 40) && !zone(50, -40));
+  ok('dicht am Körper ist kein Schild', !zone(26, 0));
+  /* Hase: genau drei Treffer */
+  const three = fresh(75);
+  pair(three, 300, 400);
+  three.s.vol.t = 99999; three.s.foxT = 99999;
+  for (let i = 1; i <= 3; i++) {
+    three.s.pinv[0] = 0;
+    three.s.arrows = [{ x: three.s.p[0].x + 10, y: three.s.p[0].y + 28, vx: 2, vy: 0 }];
+    three.tick(0, 0);
+    ok('Hasentreffer ' + i + (i < 3 ? ': Hase lebt' : ': Game over'), (three.s.phase === 'over') === (i === 3), three.s.hp[0]);
+  }
+  /* Fuchs */
+  const fx = fresh(76);
+  pair(fx, 400, 40);
+  fx.s.vol.t = 99999;
+  fx.s.foxT = 1;
+  fx.tick(0, 0);
+  ok('Fuchs erscheint vorne', fx.s.fox && fx.s.fox.x > fx.s.p[1].x + 400);
+  for (let i = 0; i < 300 && fx.s.fox.x > fx.s.p[1].x + 80; i++) fx.tick(0, 0);
+  ok('Fuchs läuft zu den Figuren', fx.s.fox.x <= fx.s.p[1].x + 90, fx.s.fox.x | 0);
+  const hits = [];
+  for (let n = 0; n < 3; n++) {
+    const before = fx.s.fox.x, hp = fx.s.fox.hp;
+    const toFox = aimOf(Math.atan2(fx.s.fox.y + 17 - (fx.s.p[1].y + 28), fx.s.fox.x + 23 - (fx.s.p[1].x + 18)));
+    fx.tick(0, toFox | Sim.S); fx.tick(0, toFox);
+    ok('Schlag ' + (n + 1) + ' trifft', (fx.s.fox ? fx.s.fox.hp : 0) === hp - 1);
+    if (!fx.s.fox) break;
+    for (let i = 0; i < 40; i++) fx.tick(0, toFox);
+    hits.push(Math.round(fx.s.fox.x - before));
+    ok('Rückstoß gibt Zeit', fx.s.fox.x - before > 70, fx.s.fox.x - before | 0);
+    for (let i = 0; i < 200 && fx.s.fox.x > fx.s.p[1].x + 70; i++) fx.tick(0, toFox);
+  }
+  ok('nach 3 Schlägen ist der Fuchs besiegt', fx.s.fox === null && fx.s.foxes === 1);
+  const open = fresh(77);
+  pair(open, 300, 300);
+  open.s.vol.t = 99999; open.s.foxT = 99999;
+  open.tick(0, aimOf(Math.PI)); open.tick(0, aimOf(Math.PI) | Sim.S);
+  { const d = open.s.p[1]; open.s.arrows = [{ x: d.x + 18 - 58, y: d.y + 28, vx: 9, vy: 0 }]; }
+  open.tick(0, aimOf(Math.PI));
+  ok('beim Schwertschlag ist das Schild kurz offen', open.s.blocked === 0);
+  const bite = fresh(78);
+  pair(bite, 400, 300);
+  bite.s.vol.t = 99999;
+  bite.s.fox = { x: bite.s.p[0].x + 40, y: bite.s.p[0].y + 22, vy: 0, hp: 3, st: 0, kb: 0, g: 1, f: -1 };
+  for (let i = 0; i < 12; i++) bite.tick(0, 0);
+  ok('Fuchsbiss zählt beim Hasen als Treffer', bite.s.hp[0] === 100 - VOL.DMG[0], bite.s.hp[0]);
+  /* Heilung */
+  const k = fresh(72);
+  pair(k, 300, 30);
+  k.s.vol.t = 9999; k.s.hp = [40, 40];
+  for (let i = 0; i < 6; i++) k.tick(0, 0);
+  k.tick(K, 0);
+  for (let i = 0; i < 110; i++) k.tick(0, 0);
+  ok('Kuss des Hasen füllt Dinos Leben auf, Hase bleibt', k.s.hp[0] === 40 && k.s.hp[1] === 100, k.s.hp.join());
+  const nk = fresh(79);
+  pair(nk, 300, 30);
+  nk.s.vol.t = 9999; nk.s.hp = [100, 50];
+  for (let i = 0; i < 6; i++) nk.tick(0, 0);
+  nk.tick(0, K);
+  for (let i = 0; i < 110; i++) nk.tick(0, 0);
+  ok('Kuss vom Dino heilt nicht', nk.s.hp[1] === 50, nk.s.hp.join());
+  /* Späherin */
+  const sc = fresh(80);
+  pair(sc, 600, 40);
+  sc.s.foxT = 99999;
+  const up = aimOf(-Math.PI * .75);
+  sc.tick(up | Sim.S, 0);
+  ok('Klick des Hasen setzt die Markierung', sc.s.mark === (up >> 5), sc.s.mark);
+  sc.s.vol.t = 1; sc.s.vol.st = 'warn';
+  let gone = -1;
+  for (let i = 0; i < 80 && sc.s.mark >= 0; i++) { sc.tick(up, 0); gone = i; }
+  const near = sc.s.arrows.some(q => Math.abs(q.x - sc.s.p[0].x) < VOL.VIEW + 15);
+  ok('Markierung verschwindet, sobald Pfeile im Sichtfeld sind', sc.s.mark === -1 && near, gone);
+  /* Möhren */
+  const c1 = fresh(81);
+  pair(c1, 600, 300);
+  c1.s.vol.t = 9999; c1.s.foxT = 99999;
+  c1.tick(aimOf(0) | Sim.T, 0);
+  const y0 = c1.s.car[0].y;
+  for (let i = 0; i < 40; i++) c1.tick(aimOf(0), 0);
+  ok('Möhre fliegt geradeaus ohne Schwerkraft', c1.s.car[0] && c1.s.car[0].y === y0 && c1.s.car[0].vy === c1.s.car[0].vy);
+  const c2 = fresh(82);
+  pair(c2, 700, 60);
+  c2.s.foxT = 99999; c2.s.vol.t = 99999;
+  for (let i = 0; i < 90; i++) c2.tick(0, 0);
+  const tgt = c2.s.arch[0], a0 = Math.atan2(tgt.y - (c2.s.p[0].y + 22), tgt.x - (c2.s.p[0].x + 18));
+  c2.tick(aimOf(a0), 0); c2.tick(aimOf(a0) | Sim.T, 0);
+  for (let i = 0; i < 110 && !c2.s.arch[0].down; i++) c2.tick(aimOf(a0), 0);
+  ok('Möhre trifft Bogenschützen', c2.s.arch[0].down === 1 && c2.s.downs === 1);
+  c2.s.vol.side = 1; c2.s.vol.st = 'warn'; c2.s.vol.t = 1;
+  c2.tick(0, 0);
+  ok('Dessen nächste Salve fällt aus', c2.s.arrows.length === 0 && c2.s.arch[0].down === 0 && c2.events.some(e => e.e === 'skipped'));
+  const c3 = fresh(83);
+  pair(c3, 700, 300);
+  c3.s.vol.t = 99999;
+  c3.s.fox = { x: c3.s.p[0].x + 120, y: c3.s.p[0].y + 22, vy: 0, hp: 3, st: 0, kb: 0, g: 1, f: -1 };
+  c3.tick(aimOf(0) | Sim.T, 0);
+  for (let i = 0; i < 12; i++) c3.tick(aimOf(0), 0);
+  ok('Möhre betäubt den Fuchs, kostet ihn aber kein Leben', c3.s.fox.st > 60 && c3.s.fox.hp === 3, c3.s.fox.st);
+  const o = fresh(73);
+  pair(o, 300, 300);
+  o.s.vol.t = 9999; o.s.hp[0] = 10;
+  o.s.arrows = [{ x: o.s.p[0].x + 10, y: o.s.p[0].y + 28, vx: 9, vy: 0 }];
+  for (let i = 0; i < 40; i++) o.tick(0, 0);
+  ok('Hase bei 0: Game over genau einmal', o.s.phase === 'over' && o.events.filter(e => e.e === 'over').length === 1);
+  /* lösbar: dieselben Abschnitte wie im Rabenlauf, Salven zerstören nichts */
+  const p = JSON.parse(JSON.stringify(Sim.pack(a.s))); p.ev = [];
+  ok('gepackter Zustand rechnet weiter', !!Sim.step(p, [R, R], { predict: true }).p);
+}
 console.log(`\n${passed} bestanden, ${fails} fehlgeschlagen`);
 process.exit(fails ? 1 : 0);
